@@ -40,57 +40,30 @@
 #include "memory.h"
 #include "i2c.h"
 
-vu32 *arm11Entry = (vu32 *)BRAHMA_ARM11_ENTRY;
 
-static void invokeArm11Function(void (*func)())
-{
-    *arm11Entry = (u32)func;
-    while(*arm11Entry);
-}
 
 void clearScreens(void)
 {
-    void __attribute__((naked)) ARM11(void)
-    {
-        //Setting up two simultaneous memory fills using the GPU
-
-        vu32 *REGs_PSC0 = (vu32 *)0x10400010,
-             *REGs_PSC1 = (vu32 *)0x10400020;
-
-        REGs_PSC0[0] = (u32)fb->top_left >> 3; //Start address
-        REGs_PSC0[1] = (u32)(fb->top_left + SCREEN_TOP_FBSIZE) >> 3; //End address
-        REGs_PSC0[2] = 0; //Fill value
-        REGs_PSC0[3] = (2 << 8) | 1; //32-bit pattern; start
-
-        REGs_PSC1[0] = (u32)fb->bottom >> 3; //Start address
-        REGs_PSC1[1] = (u32)(fb->bottom + SCREEN_BOTTOM_FBSIZE) >> 3; //End address
-        REGs_PSC1[2] = 0; //Fill value
-        REGs_PSC1[3] = (2 << 8) | 1; //32-bit pattern; start
-
-        while(!((REGs_PSC0[3] & 2) && (REGs_PSC1[3] & 2)));
-
-        WAIT_FOR_ARM9();
-    }
-
-    invokeArm11Function(ARM11);
+    memset32(fb->top_left, 0, 0x46500);
+    memset32(fb->top_right, 0, 0x46500);
+    memset32(fb->bottom, 0, 0x38400);
 }
-
 void initScreens(void)
 {
-    void __attribute__((naked)) initSequence(void)
-    {
-        //Disable interrupts
-        __asm(".word 0xF10C01C0");
+    vu32 *const arm11 = (u32 *)0x1FFFFFF8;
 
+    void __attribute__((naked)) ARM11(void)
+    {
+        __asm(".word 0xF10C01C0");
         *(vu32 *)0x10141200 = 0x1007F;
         *(vu32 *)0x10202014 = 0x00000001;
         *(vu32 *)0x1020200C &= 0xFFFEFFFE;
-        *(vu32 *)0x10202240 = 0x4C;
-        *(vu32 *)0x10202A40 = 0x4C;
+        *(vu32 *)0x10202240 = 0x45;
+        *(vu32 *)0x10202A40 = 0x45;
         *(vu32 *)0x10202244 = 0x1023E;
         *(vu32 *)0x10202A44 = 0x1023E;
 
-        //Top screen
+        // Top screen
         *(vu32 *)0x10400400 = 0x000001c2;
         *(vu32 *)0x10400404 = 0x000000d1;
         *(vu32 *)0x10400408 = 0x000001c1;
@@ -120,11 +93,11 @@ void initScreens(void)
         *(vu32 *)0x10400490 = 0x000002D0;
         *(vu32 *)0x1040049C = 0x00000000;
 
-        //Disco register
-        for(u32 i = 0; i < 256; i++)
-           *(vu32 *)0x10400484 = 0x10101 * i;
+        // Disco register
+        for(vu32 i = 0; i < 256; i++)
+            *(vu32 *)0x10400484 = 0x10101 * i;
 
-        //Bottom screen
+        // Bottom screen
         *(vu32 *)0x10400500 = 0x000001c2;
         *(vu32 *)0x10400504 = 0x000000d1;
         *(vu32 *)0x10400508 = 0x000001c1;
@@ -154,43 +127,36 @@ void initScreens(void)
         *(vu32 *)0x10400590 = 0x000002D0;
         *(vu32 *)0x1040059C = 0x00000000;
 
-        //Disco register
-        for(u32 i = 0; i < 256; i++)
-           *(vu32 *)0x10400584 = 0x10101 * i;
+        // Disco register
+        for(vu32 i = 0; i < 256; i++)
+            *(vu32 *)0x10400584 = 0x10101 * i;
 
-        WAIT_FOR_ARM9();
-    }
-
-    //Set CakeBrah framebuffers
-    void __attribute__((naked)) setupFramebuffers(void)
-    {
-        //Disable interrupts
-        __asm(".word 0xF10C01C0");
-
-        fb->top_left = (u8 *)0x18300000;
-        fb->top_right = (u8 *)0x18300000;
-        fb->bottom = (u8 *)0x18346500;
-
-        *(vu32 *)0x10400468 = (u32)fb->top_left;
-        *(vu32 *)0x1040046c = (u32)fb->top_left;
-        *(vu32 *)0x10400494 = (u32)fb->top_right;
-        *(vu32 *)0x10400498 = (u32)fb->top_right;
-        *(vu32 *)0x10400568 = (u32)fb->bottom;
-        *(vu32 *)0x1040056c = (u32)fb->bottom;
-
-        WAIT_FOR_ARM9();
-    }
-
-    if(!ARESCREENSINITED)
-    {
-        invokeArm11Function(initSequence);
-
-        //Turn on backlight
+        // Enable backlight
         i2cWriteRegister(I2C_DEV_MCU, 0x22, 0x2A);
+
+        *(vu32 *)0x10400468 = 0x18300000;
+        *(vu32 *)0x1040046c = 0x18300000;
+        *(vu32 *)0x10400494 = 0x18300000;
+        *(vu32 *)0x10400498 = 0x18300000;
+        *(vu32 *)0x10400568 = 0x18346500;
+        *(vu32 *)0x1040056c = 0x18346500;
+
+        //Set CakeBrah framebuffers
+        *((vu32 *)0x23FFFE00) = 0x18300000;
+        *((vu32 *)0x23FFFE04) = 0x18300000;
+        *((vu32 *)0x23FFFE08) = 0x18346500;
+
+        //Clear ARM11 entry offset
+        *arm11 = 0;
+
+        while(1);
     }
 
-    flushDCacheRange((void *)fb, sizeof(struct fb));
-    invokeArm11Function(setupFramebuffers);
+    if(PDN_GPU_CNT == 1)
+    {
+        *arm11 = (u32)ARM11;
+        while(*arm11);
+    }
 
     clearScreens();
 }

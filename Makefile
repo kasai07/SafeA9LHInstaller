@@ -25,7 +25,7 @@ objects= $(patsubst $(dir_source)/%.s, $(dir_build)/%.o, \
 	 $(call rwildcard, $(dir_source), *.s *.c)))
 
 .PHONY: all
-all: launcher a9lh cakebrah
+all: a9lh
 
 .PHONY: launcher
 launcher: $(dir_out)/$(name).dat
