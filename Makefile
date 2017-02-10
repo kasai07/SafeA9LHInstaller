@@ -31,7 +31,7 @@ all: a9lh
 launcher: $(dir_out)/$(name).dat
 
 .PHONY: a9lh
-a9lh: $(dir_out)/arm9loaderhax.bin
+a9lh: $(dir_out)/SafeA9LHInstaller.bin
 
 .PHONY: cakebrah
 cakebrah: $(dir_out)/3ds/$(name)
@@ -52,7 +52,7 @@ $(dir_out)/$(name).dat: $(dir_build)/main.bin $(dir_out)
 	@$(MAKE) $(FLAGS) -C $(dir_cakehax) launcher
 	dd if=$(dir_build)/main.bin of=$@ bs=512 seek=144
 
-$(dir_out)/arm9loaderhax.bin: $(dir_build)/main.bin $(dir_out)
+$(dir_out)/SafeA9LHInstaller.bin: $(dir_build)/main.bin $(dir_out)
 	@cp -av $(dir_build)/main.bin $@
 
 $(dir_out)/3ds/$(name): $(dir_out)
