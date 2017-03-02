@@ -1,7 +1,6 @@
 /*
 *   utils.c
 */
-
 #include "fs.h"
 #include "utils.h"
 #include "draw.h"
