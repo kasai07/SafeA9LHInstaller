@@ -72,3 +72,19 @@ flushEntireICache:
     mov r0, #0
     mcr p15, 0, r0, c7, c5, 0
     bx lr
+
+.global flushICacheRange
+.type flushICacheRange, %function
+flushICacheRange:
+    @ Implemented in bootROM at address 0xffff0ac0
+    add r1, r0, r1                      @ end address
+    bic r0, #0x1f                       @ align source address to cache line size (32 bytes)
+
+    flush_icache_range_loop:
+        mcr p15, 0, r0, c7, c5, 1      @ flush the line corresponding to the address r0 is holding
+        add r0, #0x20
+        cmp r0, r1
+        blo flush_icache_range_loop
+
+    bx lr
+
