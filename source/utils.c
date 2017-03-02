@@ -2,11 +2,14 @@
 *   utils.c
 */
 
+#include "fs.h"
 #include "utils.h"
 #include "draw.h"
 #include "screen.h"
 #include "cache.h"
 #include "i2c.h"
+#include "payload.h"
+
 
 u32 waitInput(void)
 {
@@ -62,18 +65,19 @@ void inputSequence(void)
 
 void shutdown(u32 mode, const char *message)
 {
-    if(mode != 0)
+    u32 pressed = 0;
+	if(mode != 0)
     {
         posY = drawString(message, 10, posY + SPACING_Y, mode == 1 ? COLOR_RED : COLOR_GREEN);
-        drawString("Press any button to shutdown", 10, posY, COLOR_WHITE);
-        waitInput();
+        
     }
-
-    clearScreens();
-
-    //Ensure that all memory transfers have completed and that the data cache has been flushed
-    flushEntireDCache();
-
-    i2cWriteRegister(I2C_DEV_MCU, 0x20, 1 << 0);
-    while(true);
+	
+	drawString("Press any button to reboot arm9.bin", 10, posY, COLOR_WHITE);
+    drawString("Press button START to Poweroff", 10, posY+10, COLOR_WHITE);
+	pressed = waitInput();
+	if(pressed == BUTTON_START)i2cWriteRegister(I2C_DEV_MCU, 0x20, 1 << 0);
+    
+	clearScreens();
+	mountFs(true);
+    Load_Payload();
 }
